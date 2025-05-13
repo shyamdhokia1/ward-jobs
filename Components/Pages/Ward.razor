@@ -1,0 +1,149 @@
+@page "/ward"
+@rendermode InteractiveServer
+
+<PageTitle>Ward</PageTitle>
+
+<div class="ward-header">
+    <h1>Ward</h1>
+    <button class="add-bed-btn" @onclick="() => AddBed()">Add Bed</button>
+</div>
+
+@if (bedlist == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="bed-container">
+        @foreach (var bed in bedlist)
+        {
+            <div class="bed-card">
+                <div class="bed-header">
+                    <h2 class="bed-number">
+                        Bed 
+                        <input type="text" @bind="bed.BedNumber" class="bed-number-input" />
+                    </h2>
+                </div>
+                <div class="bed-content">
+                    <input type="text" @bind="bed.Initials" placeholder="Enter Patient Initials" class="initial-form" />
+
+                    <div class="jobs-section">
+                        <div class="jobs-header">
+                            <span>Jobs</span>
+                            <span class="jobs-count">@bed.JobsList.Count</span>
+                        </div>
+                        
+                        @if (bed.JobsList.Any())
+                        {
+                            <ul class="job-list">
+                                @foreach (var job in bed.JobsList)
+                                {
+                                    <li class="job-item @(job.IsCompleted ? "job-completed" : "")">
+                                        <div class="job-checkbox">
+                                            <input type="checkbox" checked="@job.IsCompleted" @onchange="@(EventCallback.Factory.Create(this, () => JobCompleted(job)))" />
+                                        </div>
+                                        <div class="job-content">
+                                            <div class="job-title">@job.Title</div>
+                                            <div class="job-meta">
+                                                Created: @job.TimeCreated.ToString("dd/MM/yyyy HH:mm")
+                                                @if (job.IsCompleted)
+                                                {
+                                                    <span> • Completed: @job.TimeCompleted?.ToString("dd/MM/yyyy HH:mm")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="no-jobs">No jobs yet</p>
+                        }
+                        
+                        <div class="new-job-form">
+                            <input type="text" 
+                                   @bind="bed.NewJobTitle" 
+                                   @bind:event="oninput"
+                                   @onkeypress="@(e => { if (e.Key == "Enter") AddJob(bed); })"
+                                   placeholder="Enter new job" 
+                                   class="new-job-input" />
+                            <button class="add-job-btn" @onclick="() => AddJob(bed)">Add Job</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <button class="add-bed-btn" @onclick="() => AddBed()">Add Bed</button>
+}
+
+@code {
+    private List<Bed>? bedlist;
+    private int NextBed = 9;
+    protected override void OnInitialized()
+    {
+        bedlist = new List<Bed>();
+        for (int i = 0; i < 8; i++)
+        {
+            bedlist.Add(new Bed
+            {
+                BedNumber = (i + 1).ToString(),
+                Initials = string.Empty,
+                JobsList = new List<Job>(),
+                NewJobTitle = string.Empty
+            });
+        }
+    }
+
+    private class Bed
+    {
+        public string BedNumber { get; set; } = string.Empty;
+        public string Initials { get; set; } = string.Empty;
+        public List<Job> JobsList { get; set; } = new List<Job>();
+        public string NewJobTitle { get; set; } = string.Empty;
+    }
+
+    public class Job
+    {
+        public string Title { get; set; } = string.Empty;
+        public DateTime TimeCreated { get; set; } = DateTime.Now;
+        public bool IsCompleted { get; set; } = false;
+        public DateTime? TimeCompleted { get; set; }
+    }
+
+    private void AddJob(Bed bed)
+    {
+        if (!string.IsNullOrWhiteSpace(bed.NewJobTitle))
+        {
+            Job newJob = new Job { Title = bed.NewJobTitle };
+            bed.JobsList.Add(newJob);
+            bed.NewJobTitle = string.Empty;
+        }
+    }
+
+    private void JobCompleted(Job job)
+    {
+        job.IsCompleted = !job.IsCompleted;
+        if (job.IsCompleted)
+        {
+            job.TimeCompleted = DateTime.Now;
+        }
+        else
+        {
+            job.TimeCompleted = null;
+        }
+    }
+
+    private void AddBed()
+    {
+        bedlist?.Add(new Bed
+        {
+            BedNumber = NextBed.ToString(),
+            Initials = string.Empty,
+            JobsList = new List<Job>(),
+            NewJobTitle = string.Empty
+        });
+        NextBed++;
+    }
+}
